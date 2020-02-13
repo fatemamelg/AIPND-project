@@ -13,6 +13,7 @@ import torchvision
 from torchvision import datasets, transforms, models
 
 from PIL import Image
+import json
 import argparse
 
 
@@ -25,7 +26,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Training")
     parser.add_argument('--data_dir', action='store')
     parser.add_argument('--arch', dest='arch', default='vgg13', choices=['vgg13', 'densenet121'])
-    parser.add_argument('--learning_rate', dest='learning_rate', default='0.001')
+    parser.add_argument('--learning_rate', dest='learning_rate', default='0.01')
     parser.add_argument('--hidden_units', dest='hidden_units', default='512')
     parser.add_argument('--epochs', dest='epochs', default='3')
     parser.add_argument('--gpu', action='store', default='gpu')
@@ -84,6 +85,9 @@ def main():
     
     args = parse_args()
     
+    rate = float(args.learning_rate)
+    hl = int(args.hidden_units)
+    
     data_dir = 'flowers'
     train_dir = data_dir + '/train'
     val_dir = data_dir + '/valid'
@@ -110,21 +114,29 @@ def main():
         classifier = nn.Sequential(OrderedDict([
                                   ('fc1', nn.Linear(feature_num, 1024)),
                                   ('drop', nn.Dropout(p=0.5)),
-                                  ('relu', nn.ReLU()),
+                                  ('relu1', nn.ReLU()),
+                                  ('hidden_layer1', nn.Linear(hl, 90)),
+                                  ('relu2',nn.ReLU()),
+                                  ('hidden_layer2',nn.Linear(90,80)),
+                                  ('relu3',nn.ReLU()),
                                   ('fc2', nn.Linear(1024, 102)),
                                   ('output', nn.LogSoftmax(dim=1))]))
     elif args.arch == "densenet121":
         classifier = nn.Sequential(OrderedDict([
                                   ('fc1', nn.Linear(1024, 500)),
                                   ('drop', nn.Dropout(p=0.6)),
-                                  ('relu', nn.ReLU()),
+                                  ('relu1', nn.ReLU()),
+                                  ('hidden_layer1', nn.Linear(hl, 90)),
+                                  ('relu2',nn.ReLU()),
+                                  ('hidden_layer2',nn.Linear(90,80)),
+                                  ('relu3',nn.ReLU()),
                                   ('fc2', nn.Linear(500, 102)),
                                   ('output', nn.LogSoftmax(dim=1))]))
 
     model.classifier = classifier
     
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(model.classifier.parameters(), lr=0.01)
+    optimizer = optim.SGD(model.classifier.parameters(), lr=rate)
     
     epochs = int(args.epochs)
     class_index = image_datasets[0].class_to_idx
